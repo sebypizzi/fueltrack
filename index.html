@@ -59,4 +59,29 @@ const oldFuelSubmit=$('fuelForm').onsubmit;
 $('fuelForm').onsubmit=function(e){e.preventDefault();fuelFeedback.textContent='';try{oldFuelSubmit(e);if(!$('add').classList.contains('hidden')){const n=$('notice').textContent;if(n)fuelFeedback.textContent=n;}}catch(err){console.error('FuelTrack save:',err);fuelFeedback.textContent='Errore durante il salvataggio. I dati inseriti non sono stati cancellati. Riprova o esporta un backup.';}};
 $('fuelForm').querySelectorAll('input,select').forEach(el=>el.addEventListener('input',()=>{fuelFeedback.textContent=''}));
 
+
+// v7: handle history actions via delegated listeners rather than inline attributes.
+// This also surfaces errors instead of leaving buttons apparently unresponsive.
+document.getElementById('entries').addEventListener('click',function(event){
+  const button=event.target.closest('button');
+  if(!button||!this.contains(button))return;
+  const inline=button.getAttribute('onclick')||'';
+  const match=inline.match(/^\s*(editRecord|deleteRecord)\(['"]([^'"]+)['"]\)\s*;?\s*$/);
+  if(!match)return;
+  event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();
+  try {
+    const id=match[2];
+    const record=records.find(r=>r.id===id);
+    if(!record){notice('Rifornimento non trovato. Aggiorna la pagina.');return;}
+    if(match[1]==='editRecord'){
+      window.editRecord(id);
+      if(document.getElementById('add').classList.contains('hidden'))notice('Impossibile aprire la modifica.');
+    }else{
+      if(!window.confirm('Eliminare definitivamente questo rifornimento?'))return;
+      records=records.filter(r=>r.id!==id);
+      persist();
+      notice('Rifornimento eliminato.');
+    }
+  }catch(error){console.error('FuelTrack action error',error);window.alert('Operazione non riuscita. I dati non sono stati cancellati.');}
+},true);
 </script></body></html>
